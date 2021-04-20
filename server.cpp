@@ -2,7 +2,6 @@
 #include <string>
 
 #include <boost/asio.hpp>
-using namespace std;
 
 std::string read_data(boost::asio::ip::tcp::socket & socket)
 {
