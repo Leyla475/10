@@ -2,50 +2,65 @@
 #include <string>
 
 #include <boost/asio.hpp>
+using namespace std;
 
-char name[50];
-
-void write_data(boost::asio::ip::tcp::socket& socket)
+std::string read_data(boost::asio::ip::tcp::socket & socket)
 {
-	char message[50];
-	std::cout << "Write your message: ";
-	std::cin.getline(message, 50);
-	std::string data = name;
-	data += ": ";
-	data += message;
-	data += "!EOF";
-	std::cout << std::endl << data << std::endl;
-
-	boost::asio::write(socket, boost::asio::buffer(data));
+	const std::size_t length = 50;
+	char buffer[length];
+	boost::asio::read(socket, boost::asio::buffer(buffer, length));
+	return std::string(buffer, length);
 }
 
-int main(int argc, char** argv)
+std::string read_data_until(boost::asio::ip::tcp::socket & socket)
+{
+	boost::asio::streambuf buffer;
+
+	boost::asio::read_until(socket, buffer, '!');
+
+	std::string message;
+
+	// Because buffer 'buf' may contain some other data
+	// after '\n' symbol, we have to parse the buffer and
+	// extract only symbols before the delimiter.
+	std::istream input_stream(&buffer);
+	std::getline(input_stream, message, '!');
+
+	return message;
+}
+
+int main(int argc, char ** argv)
 {
 	system("chcp 1251");
 
-	std::string raw_ip_address = "127.0.0.1";
+	const std::size_t size = 30;
 
 	auto port = 3333;
 
+	boost::asio::ip::tcp::endpoint endpoint(boost::asio::ip::address_v4::any(), port);
+
+	boost::asio::io_service io_service;
+
 	try
 	{
-		boost::asio::ip::tcp::endpoint endpoint(
-		boost::asio::ip::address::from_string(raw_ip_address), port);
+		boost::asio::ip::tcp::acceptor acceptor(io_service, endpoint.protocol());
 
-		boost::asio::io_service io_service;
+		acceptor.bind(endpoint);
 
-		boost::asio::ip::tcp::socket socket(io_service, endpoint.protocol());
+		acceptor.listen(size);
 
-		socket.connect(endpoint);
+		boost::asio::ip::tcp::socket socket(io_service);
 
-		std::cout << "Write your name: ";
-		std::cin.getline(name, 50);
-		while(true) 
-			write_data(socket);
+		acceptor.accept(socket);
+
+		std::cout << "connection succeed" << std::endl;
+		while (true)
+			std::cout << read_data_until(socket) << std::endl;
+		
 	}
-	catch (boost::system::system_error& e)
+	catch (boost::system::system_error & e)
 	{
-		std::cout << "Error occured! Error code = " << e.code() << ". Message: " << e.what() << std::endl;
+		std::cout << "Chat is ended. " << e.what() << std::endl;
 
 		system("pause");
 
