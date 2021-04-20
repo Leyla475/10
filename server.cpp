@@ -2,53 +2,57 @@
 #include <string>
 
 #include <boost/asio.hpp>
-using namespace std;
 
-std::string read_data(boost::asio::ip::tcp::socket & socket)
+char name[50];
+
+void write_data(boost::asio::ip::tcp::socket& socket)
 {
-	const std::size_t length = 100;
-	char buffer[length];
-	boost::asio::read(socket, boost::asio::buffer(buffer, length));
-	return std::string(buffer, length);
+	char message[50];
+	std::cout << "Write your message: ";
+	std::cin.getline(message, 50);
+	std::string data = name;
+	data += ": ";
+	data += message;
+	data += "!EOF";
+	std::cout << std::endl << data << std::endl;
+
+	boost::asio::write(socket, boost::asio::buffer(data));
 }
 
-std::string read_data_until(boost::asio::ip::tcp::socket & socket)
-{
-	boost::asio::streambuf buffer;
-	boost::asio::read_until(socket, buffer, '!');
-	std::string message;
-	std::istream input_stream(&buffer);
-	std::getline(input_stream, message, '!');
-
-	return message;
-}
-
-int main(int argc, char ** argv)
+int main(int argc, char** argv)
 {
 	system("chcp 1251");
-	const std::size_t size = 30;
+
+	std::string raw_ip_address = "127.0.0.1";
+
 	auto port = 3333;
-	boost::asio::ip::tcp::endpoint endpoint(boost::asio::ip::address_v4::any(), port);
-	boost::asio::io_service io_service;
 
 	try
 	{
-		boost::asio::ip::tcp::acceptor acceptor(io_service, endpoint.protocol());
-		acceptor.bind(endpoint);
-		acceptor.listen(size);
-		boost::asio::ip::tcp::socket socket(io_service);
-		acceptor.accept(socket);
+		boost::asio::ip::tcp::endpoint endpoint(
+		boost::asio::ip::address::from_string(raw_ip_address), port);
 
-		std::cout << "connection succeed" << std::endl;
-		while (true)
-			std::cout << read_data_until(socket) << std::endl;
-		
+		boost::asio::io_service io_service;
+
+		boost::asio::ip::tcp::socket socket(io_service, endpoint.protocol());
+
+		socket.connect(endpoint);
+
+		std::cout << "Write your name: ";
+		std::cin.getline(name, 50);
+		while(true) 
+			write_data(socket);
 	}
-	catch (boost::system::system_error & e)
+	catch (boost::system::system_error& e)
 	{
-		std::cout << "Конец." << e.what() << std::endl;
+		std::cout << "Error occured! Error code = " << e.code() << ". Message: " << e.what() << std::endl;
+
+		system("pause");
+
 		return e.code().value();
 	}
 
-	return 0;
+	system("pause");
+
+	return EXIT_SUCCESS;
 }
