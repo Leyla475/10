@@ -8,23 +8,23 @@ char name[50];
 void write_data(boost::asio::ip::tcp::socket& socket)
 {
 	char message[50];
-	while(message != "Пока") {
-	std::cout << "Текст: ";
-	getline(std::cin, message);
+	std::cout << "Write your message: ";
+	std::cin.getline(message, 50);
 	std::string data = name;
 	data += ": ";
 	data += message;
 	data += "!EOF";
 	std::cout << std::endl << data << std::endl;
-	boost::asio::write(socket, boost::asio::buffer(data));
-	}
 
+	boost::asio::write(socket, boost::asio::buffer(data));
 }
 
-int main()
+int main(int argc, char** argv)
 {
 	system("chcp 1251");
+
 	std::string raw_ip_address = "127.0.0.1";
+
 	auto port = 3333;
 
 	try
@@ -38,18 +38,21 @@ int main()
 
 		socket.connect(endpoint);
 
-		std::cout << "Имя: ";
+		std::cout << "Write your name: ";
 		std::cin.getline(name, 50);
-		write_data(socket);
+		while(true) 
+			write_data(socket);
 	}
-	
 	catch (boost::system::system_error& e)
 	{
-		std::cout << "Error code = " << e.code() << ". Message: " << e.what() << std::endl;
+		std::cout << "Error occured! Error code = " << e.code() << ". Message: " << e.what() << std::endl;
+
 		system("pause");
+
 		return e.code().value();
 	}
 
 	system("pause");
-return 0;
+
+	return EXIT_SUCCESS;
 }
